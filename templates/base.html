@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskMaster</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon.svg' %}">
+    <link rel="icon" type="image/png" href="{% static 'icons/favicon-32.png' %}" sizes="32x32">
+    <link rel="shortcut icon" href="{% static 'icons/favicon-32.png' %}">
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --card-bg: #0f172a;
+            --accent: #6366f1;
+            --input-bg: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* עיצוב כרטיסיית התחברות/הרשמה עם הצללה במעבר עכבר */
+        .auth-card {
+            background: var(--card-bg);
+            padding: 45px;
+            border-radius: 28px;
+            border: 1px solid #1e293b;
+            width: 100%;
+            max-width: 420px;
+            margin: 60px auto;
+            text-align: center;
+            transition: all 0.4s ease;
+        }
+        .auth-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+            transform: translateY(-5px);
+        }
+
+        /* ביטול התיבות הלבנות - פתרון מוחלט */
+        input, select, textarea {
+            background-color: var(--input-bg) !important;
+            color: white !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px !important;
+            padding: 14px !important;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        /* מניעת רקע לבן במילוי אוטומטי של סיסמאות */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        button {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            width: 100%;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: var(--accent);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        nav { background: #080c1d; padding: 20px; border-bottom: 1px solid #1e293b; position: relative; display: flex; align-items: center; justify-content: center; gap: 15px; }
+        nav a { color: #94a3b8; text-decoration: none; margin: 0 15px; font-weight: 500; }
+        nav a:hover { color: var(--accent); }
+
+        /* מיתוג: אייקון + טקסט בצד השמאלי (ב‑RTL זה יהיה בצד השמאלי של המסך) */
+        .brand {
+            position: absolute;
+                inset-inline-end: 20px; /* תומך ב‑RTL/LTR */
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e6eef8;
+            font-weight: 700;
+            text-decoration: none;
+            z-index: 10;
+        }
+        .brand svg { width: 28px; height: 28px; display: block; }
+        .brand .brand-title { font-size: 1rem; color: #e6eef8; }
+
+        .nav-userbox {
+            position: absolute;
+            inset-inline-start: 20px; /* מציב בצד השני ביחס ל־.brand */
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            z-index: 10;
+            text-align: left;
+            color: #e6eef8;
+        }
+        .nav-userbox p { margin: 0; line-height: 1; }
+        .nav-username { font-weight: 700; font-size: 1rem; }
+        .nav-fullname { color: #cbd5e1; font-size: 0.85rem; }
+        .nav-role { color: #94a3b8; font-size: 0.78rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+
+        /* password toggle */
+        .pw-wrapper { position: relative; width: 100%; }
+        .pw-wrapper input[type="password"],
+        .pw-wrapper input[type="text"] {
+            padding-inline-end: 40px; /* מרווח קבוע לעינית */
+            box-sizing: border-box;
+            height: inherit;
+        }
+
+        /* כפתור העינית קטן בתוך השדה (ב‑RTL יהיה בצד שמאל) */
+        .pw-toggle {
+            position: absolute;
+            inset-inline-end: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            margin: 0;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        /* ביטול אפקטי hover/focus שמרחיבים את הכפתור */
+        .pw-toggle:hover,
+        .pw-toggle:focus {
+            background: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            color: #cbd5e1;
+        }
+
+        .pw-toggle svg { width: 14px; height: 14px; display: block; }
+
+        /* מוודא שהשדה לא ישנה גובה כשהטייפ משתנה */
+        .pw-wrapper input[type="text"],
+        .pw-wrapper input[type="password"] { transition: none; }
+
+        /* שיפור עיצוב של Select (סגור) */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: var(--input-bg) !important;
+            color: #e6eef8 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px !important;
+            padding: 14px !important;
+            padding-inline-start: 44px !important; /* מרווח עבור החץ (RTL) */
+            padding-inline-end: 14px !important;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2394a3b8' d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: left 12px center; /* בחיבור RTL - החץ בצד שמאל */
+            background-size: 14px;
+            cursor: pointer;
+        }
+        select:hover, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(99,102,241,0.08);
+        }
+
+        /* ניסיון לשנות גם את העיצוב של האפשרויות - עובד בדפדפנים שתומכים בזה */
+        select option {
+            background-color: var(--card-bg);
+            color: #e6eef8;
+            padding: 8px;
+        }
+
+        /* חלופה מותאמת (כשצריך שליטה מלאה על הרשימה) */
+        .custom-select { position: relative; }
+        .cs-btn {
+            background: var(--input-bg);
+            color: #e6eef8;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            width: 100%;
+            text-align: start;
+            cursor: pointer;
+            padding-inline-start: 14px;
+            padding-inline-end: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .cs-list {
+            position: absolute;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            margin-top: 8px;
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            max-height: 240px;
+            overflow: auto;
+            z-index: 60;
+            display: none;
+            box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+        }
+        .cs-item {
+            padding: 10px 14px;
+            color: #e6eef8;
+            cursor: pointer;
+        }
+        .cs-item:hover { background: rgba(99,102,241,0.06); color: #fff; }
+        .cs-item.selected { background: rgba(99,102,241,0.12); }
+        /* כפתור קטן לחצים במצב פתוח */
+        .cs-btn::after {
+            content: '';
+            width: 0; height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #94a3b8;
+            transform: rotate(0deg);
+            margin-inline-start: 8px;
+        }
+        .cs-btn.open::after { transform: rotate(180deg); border-top-color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a class="brand" href="{% url 'home' %}" aria-label="TaskMaster">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TaskMaster logo" focusable="false" width="28" height="28">
+                <title>TaskMaster</title>
+                <path d="M9 2h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zM12 8a1 1 0 100-2 1 1 0 000 2zM9.3 13.3l-1.6-1.6L6 14l3.3 3.3L18 8.6 16.6 7.3 9.3 13.3z" fill="#6366f1"/>
+            </svg>
+            <span class="brand-title">TaskMaster</span>
+        </a>
+        {% if user.is_authenticated %}
+        <div class="nav-userbox">
+            <p class="nav-username">{{user.username}}</p>
+            <p class="nav-fullname">{{user.first_name}} {{user.last_name}}</p>
+            <p class="nav-role">{{user.worker.role}}</p>
+        </div>
+        {% endif %}
+        <a href="{% url 'home' %}">דף הבית</a>
+        <a href="{% url 'all_tasks' %}">כל המשימות</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'personal_details' %}">פרופיל</a>
+            <a href="{% url 'logout' %}">התנתק</a>
+        {% else %}
+            <a href="{% url 'login' %}">התחברות</a>
+            <a href="{% url 'register' %}">הרשמה</a>
+        {% endif %} 
+    </nav>
+    <div style="width: 95%; margin: 0 auto; flex-grow: 1;">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // עינית עם פס (למצב סיסמה מוסתרת) ועינית בלי פס (למצב גלוי)
+    const eyeWithSlash = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.8 19.8 0 0 1 3.22-4.06"/><path d="M1 1l22 22"/></svg>';
+    const eyeWithoutSlash = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+    document.querySelectorAll('input[type="password"]').forEach(function (pw) {
+        if (pw.closest('.pw-wrapper')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pw-wrapper';
+        pw.parentNode.insertBefore(wrapper, pw);
+        wrapper.appendChild(pw);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pw-toggle';
+        btn.setAttribute('aria-label', 'הצג/הסתר סיסמה');
+        btn.setAttribute('aria-pressed', 'false');
+
+        // ברירת מחדל: סיסמה מוסתרת -> מציגים עינית עם פס
+        btn.innerHTML = eyeWithSlash;
+
+        btn.addEventListener('click', function () {
+            const currentlyHidden = pw.type === 'password';
+            pw.type = currentlyHidden ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(currentlyHidden));
+            // עדכון aria-label ותצוגת האייקון בהתאם למצב אחרי לחיצה
+            btn.setAttribute('aria-label', currentlyHidden ? 'הסתר סיסמה' : 'הצג סיסמה');
+            btn.innerHTML = currentlyHidden ? eyeWithoutSlash : eyeWithSlash;
+        });
+
+        wrapper.appendChild(btn);
+    });
+
+    // המרה אוטומטית של SELECT ל-"custom select" נגיש
+    document.querySelectorAll('select').forEach(function (sel) {
+        // תאפשר לדלג אם רוצים לשמר את dropdown המקורי: data-custom="false"
+        if (sel.dataset.custom === 'false') return;
+
+        // אם הדפדפן מציג את האפשרויות לבן ולרוצים שליטה מלאה - נבנה רשימה מותאמת
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-select';
+        sel.parentNode.insertBefore(wrapper, sel);
+        wrapper.appendChild(sel);
+        sel.style.display = 'none'; // נשאיר אותו לקליטה בטופס
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cs-btn';
+        btn.setAttribute('aria-haspopup', 'listbox');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+        wrapper.appendChild(btn);
+
+        const list = document.createElement('div');
+        list.className = 'cs-list';
+        list.setAttribute('role', 'listbox');
+
+        Array.from(sel.options).forEach(function (opt) {
+            const item = document.createElement('div');
+            item.className = 'cs-item';
+            item.setAttribute('role', 'option');
+            item.dataset.value = opt.value;
+            item.textContent = opt.text;
+            if (opt.disabled) item.classList.add('disabled');
+            if (opt.selected) item.classList.add('selected');
+            item.addEventListener('click', function () {
+                sel.value = this.dataset.value;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                btn.textContent = this.textContent;
+                list.style.display = 'none';
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                // עדכון סימון ויזואלי
+                list.querySelectorAll('.cs-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+            list.appendChild(item);
+        });
+
+        wrapper.appendChild(list);
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const opened = list.style.display === 'block';
+            document.querySelectorAll('.cs-list').forEach(l => (l.style.display = 'none'));
+            document.querySelectorAll('.cs-btn').forEach(b => b.classList.remove('open'));
+            if (!opened) {
+                list.style.display = 'block';
+                btn.classList.add('open');
+                btn.setAttribute('aria-expanded', 'true');
+            } else {
+                list.style.display = 'none';
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // סגירה בלחיצה מחוץ
+        document.addEventListener('click', function (e) {
+            if (!wrapper.contains(e.target)) {
+                list.style.display = 'none';
+                btn.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+});
+    </script>
+</body>
+</html>
